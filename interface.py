@@ -1,17 +1,22 @@
-from PyQt5.QtCore import QDir, Qt, QUrl
-from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
+import os
+import time
+from functools import partial
+
+import librosa
+import numpy as np
+from PyQt5.QtCore import QDir, Qt, QUrl, QByteArray, QIODevice
+from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QAudioProbe, QAudioOutput, QAudioFormat, QAudioBuffer, \
+    QAudioDeviceInfo, QAudio
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
                              QPushButton, QSizePolicy, QSlider, QStyle, QVBoxLayout, QWidget)
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
-from moviepy.editor import *
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-import os
-import matplotlib.pyplot as plt
-import librosa.display
-import numpy as np
-# import imageio_ffmpeg
+
+from audioDataProcess import AudioDataProcess as audioProcess
+from audioDataRead import AudioDataRead as audioRead
 
 
 class WindowFunction(QMainWindow):
@@ -22,6 +27,7 @@ class WindowFunction(QMainWindow):
         self.ax = None
         self.fig = None
         self.fileName = ''
+        self.fileName = '/Users/cmzhang/Downloads/test3.mp4'
 
         super(WindowFunction, self).__init__(parent)
         self.setWindowTitle("Video Player")
@@ -29,11 +35,27 @@ class WindowFunction(QMainWindow):
         # widgets
         # video player
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
-        videoWidget = QVideoWidget()
+        self.videoWidget = QVideoWidget()
+
+        # self.audioBuffer = QAudioBuffer()
+        self.audioProbe = QAudioProbe()
+        self.audioProbe.audioBufferProbed.connect(lambda: audioProcess.twoDSpectrogramProcess(self.fileName))
+        self.audioProbe.setSource(self.mediaPlayer)
+        print(self.audioProbe.isActive())
+
+        # self.audioFormat = QAudioFormat()
+        # self.audioFormat.setSampleRate(48000)
+        # self.audioFormat.setChannelCount(2)
+        # self.audioFormat.setSampleSize(16)
+        #
+        # self.devices = QAudioDeviceInfo.availableDevices(QAudio.AudioOutput)
+        # if self.devices:
+        #     print(self.devices[3].deviceName())
 
         # play button
         self.playButton = QPushButton()
-        self.playButton.setEnabled(False)
+        # self.playButton.setEnabled(False)
+        self.playButton.setEnabled(True)
         self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.playButton.clicked.connect(self.play)
 
@@ -48,7 +70,7 @@ class WindowFunction(QMainWindow):
 
         # spectrum label
         self.spectrumLabel = QLabel()
-        self.fig, self.ax = plt.subplots()
+        self.fig, self.axs = plt.subplots()
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self)
         self.toolbar = NavigationToolbar(self.canvas, self)
@@ -60,7 +82,8 @@ class WindowFunction(QMainWindow):
 
         # Create spectrogram showing action
         soundTrackSpectrogramAction = QAction('Spectrogram', self)
-        soundTrackSpectrogramAction.triggered.connect(self.spectrogramProcess)
+        soundTrackSpectrogramAction.triggered.connect(partial(audioProcess.twoDSpectrogramProcess, None, self.fileName,
+                                                              self.canvas, self.axs))
 
         # Create a menu bar
         menuBar = self.menuBar()
@@ -72,10 +95,10 @@ class WindowFunction(QMainWindow):
         self.setCentralWidget(wid)
 
         # Create layouts to place inside widget
-        controlLayout = QHBoxLayout()
-        controlLayout.setContentsMargins(0, 0, 0, 0)
-        controlLayout.addWidget(self.playButton)
-        controlLayout.addWidget(self.positionSlider)
+        self.controlLayout = QHBoxLayout()
+        self.controlLayout.setContentsMargins(0, 0, 0, 0)
+        self.controlLayout.addWidget(self.playButton)
+        self.controlLayout.addWidget(self.positionSlider)
 
         # Create layouts to place spcetrogram
         self.spectrogramLayout = QVBoxLayout()
@@ -84,16 +107,16 @@ class WindowFunction(QMainWindow):
         self.spectrumLabel.setLayout(self.spectrogramLayout)
 
         # Create the main layout
-        mainLayout = QVBoxLayout()
-        mainLayout.addWidget(videoWidget)
-        mainLayout.addLayout(controlLayout)
+        self.mainLayout = QVBoxLayout()
+        self.mainLayout.addWidget(self.videoWidget)
+        self.mainLayout.addLayout(self.controlLayout)
         # mainLayout.addWidget(self.errorLabel)
-        mainLayout.addWidget(self.spectrumLabel)
+        self.mainLayout.addWidget(self.spectrumLabel)
 
         # Set widget to contain window contents
-        wid.setLayout(mainLayout)
+        wid.setLayout(self.mainLayout)
 
-        self.mediaPlayer.setVideoOutput(videoWidget)
+        self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.mediaPlayer.stateChanged.connect(self.mediaStateChanged)
         # self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
@@ -116,7 +139,10 @@ class WindowFunction(QMainWindow):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
         else:
+            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName)))
             self.mediaPlayer.play()
+
+            print(self.audioProbe.setSource(self.mediaPlayer))
 
     def setPosition(self, position):
         self.mediaPlayer.setPosition(position)
@@ -138,41 +164,3 @@ class WindowFunction(QMainWindow):
     def handleError(self):
         self.playButton.setEnabled(False)
         self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
-
-    def spectrogramProcess(self):
-        # get the filename of the file
-        file_extension = os.path.splitext(self.fileName)[1]
-        if file_extension == '.mp4':
-            video = VideoFileClip(self.fileName)
-            audio = video.audio
-            fileBasename = os.path.splitext(self.fileName)[0]
-            audio.write_audiofile(fileBasename + '.mp3')
-
-        y, sr = librosa.load(self.fileName, sr=16000)
-        spectrogram = librosa.feature.melspectrogram(y=y, sr=sr)
-        log_spectrogram = librosa.power_to_db(spectrogram, ref=np.max)
-
-        # self.fig, self.ax = plt.subplots()
-        # self.canvas = FigureCanvas(self.fig)
-        # self.canvas.setParent(self)
-        # self.toolbar = NavigationToolbar(self.canvas, self)
-
-        self.ax.cla()
-        librosa.display.specshow(log_spectrogram, sr=sr, x_axis="time", y_axis="mel", ax=self.ax)
-        self.canvas.draw()
-
-        # spectrogramLayout.addWidget(self.canvas)
-        # spectrogramLayout.addWidget(self.toolbar)
-
-        # x, sr = librosa.load(self.fileName, sr=16000)
-        # spectrogram = librosa.amplitude_to_db(librosa.stft(x))
-        # librosa.display.specshow(spectrogram, y_axis='log')
-        # plt.colorbar(format='%+2.0f dB')
-        # plt.title('spectrogram')
-        # plt.xlabel('time(second)')
-        # plt.ylabel('Hertz(Hz)')
-        # plt.show()
-
-
-
-

@@ -16,7 +16,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from audioDataProcess import AudioDataProcess as audioProcess
-from audioDataRead import AudioDataRead as audioRead
+import audioDataRead
+
+audioRead = audioDataRead.AudioDataRead()
 
 
 class WindowFunction(QMainWindow):
@@ -24,7 +26,7 @@ class WindowFunction(QMainWindow):
     def __init__(self, parent=None):
         self.toolbar = None
         self.canvas = None
-        self.ax = None
+        self.axs = None
         self.fig = None
         self.fileName = ''
         self.fileName = '/Users/cmzhang/Downloads/test3.mp4'
@@ -38,10 +40,11 @@ class WindowFunction(QMainWindow):
         self.videoWidget = QVideoWidget()
 
         # self.audioBuffer = QAudioBuffer()
-        self.audioProbe = QAudioProbe()
-        self.audioProbe.audioBufferProbed.connect(lambda: audioProcess.twoDSpectrogramProcess(self.fileName))
-        self.audioProbe.setSource(self.mediaPlayer)
-        print(self.audioProbe.isActive())
+        # self.audioProbe = QAudioProbe()
+        # self.audioProbe.audioBufferProbed.connect(partial(audioProcess.twoDSpectrogramProcess, None, self.fileName,
+        #                                                   self.canvas, self.axs))
+        # self.audioProbe.setSource(self.mediaPlayer)
+        # print(self.audioProbe.isActive())
 
         # self.audioFormat = QAudioFormat()
         # self.audioFormat.setSampleRate(48000)
@@ -57,7 +60,7 @@ class WindowFunction(QMainWindow):
         # self.playButton.setEnabled(False)
         self.playButton.setEnabled(True)
         self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        self.playButton.clicked.connect(self.play)
+        self.playButton.clicked.connect(partial(self.play, audioRead))
 
         # video slider
         self.positionSlider = QSlider(Qt.Horizontal)
@@ -135,14 +138,18 @@ class WindowFunction(QMainWindow):
             self.playButton.setEnabled(True)
 
     # play the video
-    def play(self):
+    def play(self, audioRead):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
+
+            # stop read output data
+            audioRead.stopReadData()
         else:
             self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName)))
             self.mediaPlayer.play()
 
-            print(self.audioProbe.setSource(self.mediaPlayer))
+            # start read output data
+            audioRead.startReadData()
 
     def setPosition(self, position):
         self.mediaPlayer.setPosition(position)

@@ -7,8 +7,6 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 
 
 class AudioDataProcess:
-    def __init__(self):
-        pass
 
     def threeDSpectrogramProcess(self, buffer: QAudioBuffer):
         # get the filename of the file

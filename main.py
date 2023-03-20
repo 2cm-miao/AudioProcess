@@ -18,7 +18,7 @@ def print_hi(name):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     player = interface.WindowFunction()
-    player.resize(640, 480)
+    # player.resize(640, 480)
     player.show()
     sys.exit(app.exec_())
 

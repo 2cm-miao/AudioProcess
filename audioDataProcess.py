@@ -1,25 +1,48 @@
 import os
-
 import librosa
 import numpy as np
-from PyQt5.QtMultimedia import QAudioBuffer
+import pyaudio as pa
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from dynamicSpectrogramWindow import DynamicSpectrogramWindow as dys
 
 
 class AudioDataProcess:
+    def __init__(self):
+        self.update = None
 
-    def threeDSpectrogramProcess(self, buffer: QAudioBuffer):
-        # get the filename of the file
-        # file_extension = os.path.splitext(self.fileName)[1]
-        # if file_extension == '.mp4':
-        #     video = VideoFileClip(self.fileName)
-        #     audio = video.audio
-        #     fileBasename = os.path.splitext(self.fileName)[0]
-        #     audio.write_audiofile(fileBasename + '.mp3')
-        # print(f'Buffer received: {buffer.frameCount()} frames')
-        print(buffer.startTime())
+    # @staticmethod
+    # def fftFunction(data, rate, format):
+    #     if format == pa.paInt16:
+    #         format = np.int16
+    #     elif format == pa.paInt32:
+    #         format = np.int32
+    #     elif format == pa.paInt24:
+    #         format = np.int24
+    #     else:
+    #         format = np.int8
+    #
+    #     audioData = np.frombuffer(data, dtype=format)
+    #     audioSpectrum = np.fft.rfft(audioData)
+    #     audioFrequency = np.fft.rfftfreq(len(audioData), 1 / rate)
+    #
+    #     return audioFrequency, audioSpectrum
+    #
+    # def dynamicSpectrogramProcess(self, stream, ifReading, frameBuffer, format, rate):
+    #     # while ifReading:
+    #     data = stream.read(frameBuffer, exception_on_overflow=False)
+    #     audioFrequency, audioSpectrum = self.fftFunction(data, rate, format)
+    #
+    #     self.updateSpectrogramData(audioFrequency, audioSpectrum)
+    #     # print(audioFrequency, audioSpectrum)
+    #
+    # @staticmethod
+    # def updateSpectrogramData(fre, spe):
+    #     print(fre, spe)
+    #     # self.update = DynamicSpectrogramWindow()
+    #     dys.drawDynamicSpectrogram(fre, spe)
 
-    def twoDSpectrogramProcess(self, fileName, canvas, axs):
+    @staticmethod
+    def twoDSpectrogramProcess(fileName, canvas, axs):
         # get the filename of the file
         file_extension = os.path.splitext(fileName)[1]
         if file_extension == '.mp4':
@@ -32,7 +55,6 @@ class AudioDataProcess:
         spectrogram = librosa.feature.melspectrogram(y=y, sr=sr)
         log_spectrogram = librosa.power_to_db(spectrogram, ref=np.max)
 
-        # self.axs.cla()
         axs.cla()
         librosa.display.specshow(log_spectrogram, sr=sr, x_axis="time", y_axis="mel", ax=axs)
         canvas.draw()

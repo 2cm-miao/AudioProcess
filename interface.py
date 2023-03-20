@@ -1,21 +1,16 @@
-import os
-import time
 from functools import partial
-
-import librosa
-import numpy as np
-from PyQt5.QtCore import QDir, Qt, QUrl, QByteArray, QIODevice
-from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QAudioProbe, QAudioOutput, QAudioFormat, QAudioBuffer, \
-    QAudioDeviceInfo, QAudio
+from PyQt5.QtCore import QDir, Qt, QUrl
+from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QLabel,
-                             QPushButton, QSizePolicy, QSlider, QStyle, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QFileDialog, QHBoxLayout, QLabel,
+                             QSizePolicy, QSlider, QStyle, QVBoxLayout)
 from PyQt5.QtWidgets import QMainWindow, QWidget, QPushButton, QAction
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from audioDataProcess import AudioDataProcess as audioProcess
+from dynamicSpectrogramWindow import DynamicSpectrogramWindow
 import audioDataRead
 
 audioRead = audioDataRead.AudioDataRead()
@@ -24,6 +19,7 @@ audioRead = audioDataRead.AudioDataRead()
 class WindowFunction(QMainWindow):
 
     def __init__(self, parent=None):
+        self.dynamicSpectrogramWin = None
         self.toolbar = None
         self.canvas = None
         self.axs = None
@@ -60,7 +56,7 @@ class WindowFunction(QMainWindow):
         # self.playButton.setEnabled(False)
         self.playButton.setEnabled(True)
         self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        self.playButton.clicked.connect(partial(self.play, audioRead))
+        self.playButton.clicked.connect(self.play)
 
         # video slider
         self.positionSlider = QSlider(Qt.Horizontal)
@@ -85,14 +81,21 @@ class WindowFunction(QMainWindow):
 
         # Create spectrogram showing action
         soundTrackSpectrogramAction = QAction('Spectrogram', self)
-        soundTrackSpectrogramAction.triggered.connect(partial(audioProcess.twoDSpectrogramProcess, None, self.fileName,
+        soundTrackSpectrogramAction.triggered.connect(partial(audioProcess.twoDSpectrogramProcess, self.fileName,
                                                               self.canvas, self.axs))
+
+        # create an action to open dynamic spectrogram window
+        audioDynamicSpectrogramAction = QAction('2D Dynamic Spectrogram', self)
+        audioDynamicSpectrogramAction.triggered.connect(self.openDynamicSpectrogramWin)
 
         # Create a menu bar
         menuBar = self.menuBar()
         fileMenu = menuBar.addMenu('&File')
         fileMenu.addAction(openAction)
-        fileMenu.addAction(soundTrackSpectrogramAction)
+
+        spectrogramMenu = menuBar.addMenu('Spectrogram')
+        spectrogramMenu.addAction(soundTrackSpectrogramAction)
+        spectrogramMenu.addAction(audioDynamicSpectrogramAction)
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -103,7 +106,7 @@ class WindowFunction(QMainWindow):
         self.controlLayout.addWidget(self.playButton)
         self.controlLayout.addWidget(self.positionSlider)
 
-        # Create layouts to place spcetrogram
+        # Create layouts to place spectrogram
         self.spectrogramLayout = QVBoxLayout()
         self.spectrogramLayout.addWidget(self.canvas)
         self.spectrogramLayout.addWidget(self.toolbar)
@@ -121,11 +124,11 @@ class WindowFunction(QMainWindow):
 
         self.mediaPlayer.setVideoOutput(self.videoWidget)
         self.mediaPlayer.stateChanged.connect(self.mediaStateChanged)
-        # self.mediaPlayer.positionChanged.connect(self.positionChanged)
+        self.mediaPlayer.positionChanged.connect(self.positionChanged)
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
         self.mediaPlayer.error.connect(self.handleError)
 
-        self.setGeometry(100, 100, 2000, 2000)
+        self.setGeometry(100, 100, 1500, 1000)
 
     # open file function
     def openFile(self):
@@ -138,18 +141,15 @@ class WindowFunction(QMainWindow):
             self.playButton.setEnabled(True)
 
     # play the video
-    def play(self, audioRead):
+    def play(self):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
-
             # stop read output data
-            audioRead.stopReadData()
+            # audioRead.stopReadData()
         else:
-            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName)))
             self.mediaPlayer.play()
-
             # start read output data
-            audioRead.startReadData()
+            # audioRead.startReadData()
 
     def setPosition(self, position):
         self.mediaPlayer.setPosition(position)
@@ -171,3 +171,7 @@ class WindowFunction(QMainWindow):
     def handleError(self):
         self.playButton.setEnabled(False)
         self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
+
+    def openDynamicSpectrogramWin(self):
+        self.dynamicSpectrogramWin = DynamicSpectrogramWindow()
+        # self.dynamicSpectrogramWin.show()

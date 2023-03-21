@@ -11,6 +11,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 
 from audioDataProcess import AudioDataProcess as audioProcess
 from dynamicSpectrogramWindow import DynamicSpectrogramWindow
+from threeDDynamicSpectrogramWindow import ThreeDDynamicSpectrogramWindow
 import audioDataRead
 
 audioRead = audioDataRead.AudioDataRead()
@@ -25,7 +26,7 @@ class WindowFunction(QMainWindow):
         self.axs = None
         self.fig = None
         self.fileName = ''
-        self.fileName = '/Users/cmzhang/Downloads/test3.mp4'
+        # self.fileName = '/Users/cmzhang/Downloads/test3.mp4'
 
         super(WindowFunction, self).__init__(parent)
         self.setWindowTitle("Video Player")
@@ -85,8 +86,11 @@ class WindowFunction(QMainWindow):
                                                               self.canvas, self.axs))
 
         # create an action to open dynamic spectrogram window
-        audioDynamicSpectrogramAction = QAction('2D Dynamic Spectrogram', self)
-        audioDynamicSpectrogramAction.triggered.connect(self.openDynamicSpectrogramWin)
+        audio2DDynamicSpectrogramAction = QAction('2D Dynamic Spectrogram', self)
+        audio2DDynamicSpectrogramAction.triggered.connect(self.open2DDynamicSpectrogramWin)
+
+        audio3DDynamicSpectrogramAction = QAction('3D Dynamic Spectrogram', self)
+        audio3DDynamicSpectrogramAction.triggered.connect(self.open3DDynamicSpectrogramWin)
 
         # Create a menu bar
         menuBar = self.menuBar()
@@ -95,7 +99,8 @@ class WindowFunction(QMainWindow):
 
         spectrogramMenu = menuBar.addMenu('Spectrogram')
         spectrogramMenu.addAction(soundTrackSpectrogramAction)
-        spectrogramMenu.addAction(audioDynamicSpectrogramAction)
+        spectrogramMenu.addAction(audio2DDynamicSpectrogramAction)
+        spectrogramMenu.addAction(audio3DDynamicSpectrogramAction)
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -144,12 +149,8 @@ class WindowFunction(QMainWindow):
     def play(self):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
-            # stop read output data
-            # audioRead.stopReadData()
         else:
             self.mediaPlayer.play()
-            # start read output data
-            # audioRead.startReadData()
 
     def setPosition(self, position):
         self.mediaPlayer.setPosition(position)
@@ -172,6 +173,8 @@ class WindowFunction(QMainWindow):
         self.playButton.setEnabled(False)
         self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
 
-    def openDynamicSpectrogramWin(self):
+    def open2DDynamicSpectrogramWin(self):
         self.dynamicSpectrogramWin = DynamicSpectrogramWindow()
-        # self.dynamicSpectrogramWin.show()
+
+    def open3DDynamicSpectrogramWin(self):
+        self.dynamicSpectrogramWin = ThreeDDynamicSpectrogramWindow()

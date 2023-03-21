@@ -1,45 +1,12 @@
 import os
 import librosa
 import numpy as np
-import pyaudio as pa
 from moviepy.video.io.VideoFileClip import VideoFileClip
-from dynamicSpectrogramWindow import DynamicSpectrogramWindow as dys
 
 
 class AudioDataProcess:
     def __init__(self):
         self.update = None
-
-    # @staticmethod
-    # def fftFunction(data, rate, format):
-    #     if format == pa.paInt16:
-    #         format = np.int16
-    #     elif format == pa.paInt32:
-    #         format = np.int32
-    #     elif format == pa.paInt24:
-    #         format = np.int24
-    #     else:
-    #         format = np.int8
-    #
-    #     audioData = np.frombuffer(data, dtype=format)
-    #     audioSpectrum = np.fft.rfft(audioData)
-    #     audioFrequency = np.fft.rfftfreq(len(audioData), 1 / rate)
-    #
-    #     return audioFrequency, audioSpectrum
-    #
-    # def dynamicSpectrogramProcess(self, stream, ifReading, frameBuffer, format, rate):
-    #     # while ifReading:
-    #     data = stream.read(frameBuffer, exception_on_overflow=False)
-    #     audioFrequency, audioSpectrum = self.fftFunction(data, rate, format)
-    #
-    #     self.updateSpectrogramData(audioFrequency, audioSpectrum)
-    #     # print(audioFrequency, audioSpectrum)
-    #
-    # @staticmethod
-    # def updateSpectrogramData(fre, spe):
-    #     print(fre, spe)
-    #     # self.update = DynamicSpectrogramWindow()
-    #     dys.drawDynamicSpectrogram(fre, spe)
 
     @staticmethod
     def twoDSpectrogramProcess(fileName, canvas, axs):

@@ -1,4 +1,3 @@
-from functools import partial
 from PyQt5.QtCore import QDir, Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget
@@ -20,13 +19,13 @@ audioRead = audioDataRead.AudioDataRead()
 class WindowFunction(QMainWindow):
 
     def __init__(self, parent=None):
+        self.spectrogramWin = None
         self.dynamicSpectrogramWin = None
         self.toolbar = None
         self.canvas = None
         self.axs = None
         self.fig = None
         self.fileName = ''
-        # self.fileName = '/Users/cmzhang/Downloads/test3.mp4'
 
         super(WindowFunction, self).__init__(parent)
         self.setWindowTitle("Video Player")
@@ -36,25 +35,8 @@ class WindowFunction(QMainWindow):
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self.videoWidget = QVideoWidget()
 
-        # self.audioBuffer = QAudioBuffer()
-        # self.audioProbe = QAudioProbe()
-        # self.audioProbe.audioBufferProbed.connect(partial(audioProcess.twoDSpectrogramProcess, None, self.fileName,
-        #                                                   self.canvas, self.axs))
-        # self.audioProbe.setSource(self.mediaPlayer)
-        # print(self.audioProbe.isActive())
-
-        # self.audioFormat = QAudioFormat()
-        # self.audioFormat.setSampleRate(48000)
-        # self.audioFormat.setChannelCount(2)
-        # self.audioFormat.setSampleSize(16)
-        #
-        # self.devices = QAudioDeviceInfo.availableDevices(QAudio.AudioOutput)
-        # if self.devices:
-        #     print(self.devices[3].deviceName())
-
         # play button
         self.playButton = QPushButton()
-        # self.playButton.setEnabled(False)
         self.playButton.setEnabled(True)
         self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.playButton.clicked.connect(self.play)
@@ -82,8 +64,7 @@ class WindowFunction(QMainWindow):
 
         # Create spectrogram showing action
         soundTrackSpectrogramAction = QAction('Spectrogram', self)
-        soundTrackSpectrogramAction.triggered.connect(partial(audioProcess.twoDSpectrogramProcess, self.fileName,
-                                                              self.canvas, self.axs))
+        soundTrackSpectrogramAction.triggered.connect(self.openStaticSpectrogramWin)
 
         # create an action to open dynamic spectrogram window
         audio2DDynamicSpectrogramAction = QAction('2D Dynamic Spectrogram', self)
@@ -178,3 +159,6 @@ class WindowFunction(QMainWindow):
 
     def open3DDynamicSpectrogramWin(self):
         self.dynamicSpectrogramWin = ThreeDDynamicSpectrogramWindow()
+
+    def openStaticSpectrogramWin(self):
+        self.spectrogramWin = audioProcess.twoDSpectrogramProcess(self.fileName, self.canvas, self.axs)

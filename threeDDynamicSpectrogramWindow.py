@@ -1,12 +1,9 @@
 import numpy as np
-import pyaudio as pa
 import soundcard as sc
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
-from audioDataRead import AudioDataRead
 
 
 class ThreeDDynamicSpectrogramWindow:
@@ -15,11 +12,6 @@ class ThreeDDynamicSpectrogramWindow:
         self.screen_width, self.screen_height = 1200, 600
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height), DOUBLEBUF | OPENGL)
         pygame.display.set_caption('3D Dynamic Spectrogram')
-
-        # glMatrixMode(GL_PROJECTION)
-        # glLoadIdentity()
-        # glOrtho(10, self.screen_width, 0, self.screen_height, -1, 1)
-        # glOrtho(100, self.screen_width + 100, 50, self.screen_height + 50, -1, 1)
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -61,7 +53,7 @@ class ThreeDDynamicSpectrogramWindow:
                 break
 
             with virtual_microphone.recorder(samplerate=44100) as mic:
-                data = mic.record(numframes=2400)
+                data = mic.record(numframes=1200)
                 # print(data)
                 self.dynamicSpectrogramProcess(data, 44100)
 
@@ -90,11 +82,6 @@ class ThreeDDynamicSpectrogramWindow:
         audioFrequency = np.fft.rfftfreq(len(windowed_data), 1 / param)
         audioSpectrum = np.fft.fft(windowed_data)
 
-        # calculate the dBValue
-        # left, right = np.split(np.abs(audioSpectrum), 2)
-        # audioSpectrum = np.add(left, right[::-1])
-        # audioSpectrum = np.multiply(20, np.log10(audioSpectrum))
-
         realPart = audioSpectrum.real
         imagPart = audioSpectrum.imag
 
@@ -107,7 +94,8 @@ class ThreeDDynamicSpectrogramWindow:
         colors = []
 
         for i in range(len(fre) - 1):
-            vertices.append((fre[i], realPart[i] * 10, imagPart[i] * 10))
+            # vertices.append((fre[i], realPart[i] * 5, imagPart[i] * 5))
+            vertices.append((i, realPart[i], imagPart[i]))
 
         for i in range(len(vertices)):
             if i != len(vertices) - 1:
@@ -115,17 +103,19 @@ class ThreeDDynamicSpectrogramWindow:
                 colors.append((0, 1, 1))
 
         if self.scaleFlag:
-            glScalef(np.power(0.5, 6), np.power(0.5, 6), np.power(0.5, 6))
-            glTranslatef(-1900, 0, 0)
+            glScalef(np.power(0.5, 3), np.power(0.5, 3), np.power(0.5, 3))
+            # glTranslatef(-100, 0, 0)
             self.scaleFlag = False
 
-
+        self.drawAxes()
         glBegin(GL_LINES)
         for edge, color in zip(edges, colors):
             for vertex in edge:
                 glColor3fv(color)
                 glVertex3fv(vertices[vertex])
         glEnd()
+
+        glRotatef(1, 3, 1, 1)
 
         pygame.display.flip()
 

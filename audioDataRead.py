@@ -1,6 +1,5 @@
 import math
 import pyaudio as pa
-import soundcard as sc
 import audioDataProcess
 
 
